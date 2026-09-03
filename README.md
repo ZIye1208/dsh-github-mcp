@@ -35,13 +35,7 @@ dsh plugin --profile <profile> add github:ZIye1208/dsh-github-mcp   # 从 GitHub
 
 ## ⚙️ 安装
 
-### 方式一：npm（推荐，发布后可用）
 
-```sh
-dsh plugin --profile <profile> add dsh-github-mcp
-```
-
-会自动携带依赖 `dsh-github-mcp-hint`。
 
 
 
