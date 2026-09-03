@@ -43,7 +43,7 @@ dsh plugin --profile <profile> add dsh-github-mcp
 
 会自动携带依赖 `dsh-github-mcp-hint`。
 
-> **关于 npm 发布**：本包已按可发布到 npm 配置（`publishConfig.access: public`、`files` 白名单、`main`/`exports` 正确）。要在 npm 上安装，需先把包发布到 npm registry：在具备 npm 账号（`npm login` / 配好 token）后执行 `npm publish`。当前只发布了 GitHub 版。
+
 
 ### 方式二：GitHub
 
