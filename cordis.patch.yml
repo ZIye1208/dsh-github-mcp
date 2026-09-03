@@ -1,0 +1,15 @@
+# dsh-github-mcp bundle: 接入 GitHub MCP 的 mcp-client 行。
+# token 由本插件的宿主半（lib/index.mjs）从凭据中心(.credentials.yaml)桥上到 process.env.GITHUB_TOKEN，
+# 在 mcp-client 配置加载前设置，使 mcp-client 能读到。
+- insert:
+    - id: dsh-github-mcp
+      name: 'dsh-github-mcp'
+    - id: mcp-github
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: github
+        transport: streamable-http
+        url: https://api.githubcopilot.com/mcp/
+        headers:
+          Authorization: !!js '`Bearer ${process.env.GITHUB_TOKEN}`'
+        failOnStartupError: false
