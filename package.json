@@ -1,0 +1,33 @@
+{
+  "name": "dsh-github-mcp",
+  "description": "DSH 插件：GitHub MCP 连接插件。把 GitHub MCP 封装成一个插件，token 存到 DSH 凭据中心(.credentials.yaml)，可通过模型工具输入，并提供 GitHub 工具(mcp__github__*)。自动捆绑安装面板插件 dsh-github-mcp-hint（可独立卸载）。",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.mjs",
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2"
+  },
+  "dependencies": {
+    "dsh-github-mcp-hint": "github:ZIye1208/dsh-github-mcp-hint"
+  },
+  "license": "MIT"
+}
