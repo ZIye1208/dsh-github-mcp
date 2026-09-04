@@ -18,10 +18,8 @@
 ## 🚀 快速开始
 
 ```sh
-# 1. 安装（会一并装上依赖的面板插件 dsh-github-mcp-hint）
-dsh plugin --profile <profile> add dsh-github-mcp      # 若已发布到 npm
-# —— 或 ——
-dsh plugin --profile <profile> add github:ZIye1208/dsh-github-mcp   # 从 GitHub 安装
+
+dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # 从 GitHub 安装
 
 # 2. 设置 token（对话里说即可）
 #    “帮我把 GitHub token 设为 ghp_xxx”
@@ -42,7 +40,7 @@ dsh plugin --profile <profile> add github:ZIye1208/dsh-github-mcp   # 从 GitHub
 ### 方式二：GitHub
 
 ```sh
-dsh plugin --profile <profile> add github:ZIye1208/dsh-github-mcp
+dsh plugin --profile web add github:ZIye1208/dsh-github-mcp
 ```
 
 ### 方式三：本地开发
