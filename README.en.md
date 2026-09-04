@@ -1,6 +1,6 @@
 # dsh-github-mcp
 
-> Wraps GitHub MCP as a DSH plugin: connects to GitHub's official remote MCP Server, stores the token in the DSH credential center (`.credentials.yaml`), lets the token be set through model tools, and exposes the `mcp__github__*` tools. Automatically bundles the panel plugin `dsh-github-mcp-hint` (separately uninstallable).
+> Wraps GitHub MCP as a DSH plugin: connects to GitHub's official remote MCP Server, stores the token in the DSH credential center (`.credentials.yaml`), lets the token be set through model tools, and exposes the `mcp__github__*` tools. Comes with an **optional** panel plugin `dsh-github-mcp-hint` (installed separately; see below).
 
 ---
 
@@ -11,17 +11,19 @@
 - **Model tools**:
   - `github_token_status` — check whether the token is configured, its source, and writability.
   - `github_set_token` — set/update the token (writes to the credential center and refreshes the current environment).
-- **Bundles the panel plugin `dsh-github-mcp-hint`**: the `Settings → Plugins → GitHub MCP` UI (examples + public repo stats).
+- **Panel plugin `dsh-github-mcp-hint` (optional, installed separately)**: the `Settings → Plugins → GitHub MCP` UI (examples + public repo stats).
 
 ---
 
 ## 🚀 Quick start
 
 ```sh
-# 1. Install (also pulls the panel dependency dsh-github-mcp-hint)
-dsh plugin --profile web add dsh-github-mcp        # once published to npm
+# 1. Install the main plugin
+dsh plugin --profile web add dsh-github-mcp        # npm (recommended)
 # — or —
 dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # from GitHub
+# To get the "Settings → Plugins → GitHub MCP" panel, install the panel plugin separately:
+dsh plugin --profile web add dsh-github-mcp-hint
 
 # 2. Set the token (just ask in chat)
 #    "set my GitHub token to ghp_xxx"
@@ -41,9 +43,13 @@ dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # from GitHub
 dsh plugin --profile web add dsh-github-mcp
 ```
 
-Pulls in `dsh-github-mcp-hint` automatically.
+Installing brings `dsh-github-mcp-hint` into node_modules (as a dependency), but **DSH adds only "top-level dependencies" to a profile's bundles layer**, so the panel plugin is **not** enabled automatically. To get the "Settings → Plugins → GitHub MCP" panel, run additionally:
 
-> This package is now published to the npmjs registry. Install with `dsh plugin --profile web add dsh-github-mcp`; it pulls the `dsh-github-mcp-hint` dependency automatically.
+```sh
+dsh plugin --profile web add dsh-github-mcp-hint
+```
+
+> This package is now published to the npmjs registry. Install with `dsh plugin --profile web add dsh-github-mcp`.
 
 ### GitHub
 
@@ -143,6 +149,7 @@ token input ──(github_set_token)──► .credentials.yaml (refs.GITHUB_TOK
 - **`github_set_token` refused**: `GITHUB_TOKEN` is in the launching env (read-only). `unset GITHUB_TOKEN` first.
 - **`serverName "github" already in use`**: you added a manual `mcp-github` row. Remove it; this plugin's `cordis.patch.yml` owns that row.
 - **Token change not taking effect**: restart DSH.
+- **No "GitHub MCP" panel after `dsh-github-mcp`**: DSH adds only top-level dependencies to the bundles layer; `dsh-github-mcp-hint` (a transitive dependency) is not enabled automatically. Run `dsh plugin --profile web add dsh-github-mcp-hint` (or add it to the profile's `dsh.profile.bundles`), then restart DSH.
 
 ---
 

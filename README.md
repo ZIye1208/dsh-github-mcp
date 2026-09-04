@@ -1,6 +1,6 @@
 # dsh-github-mcp
 
-> 把 GitHub MCP 整体封装成一个 DSH 插件：接入 GitHub 官方远程 MCP Server，token 存到 DSH 凭据中心（`.credentials.yaml`），可通过模型工具输入；GitHub 工具以 `mcp__github__*` 形式可用。自动捆绑安装面板插件 `dsh-github-mcp-hint`（可独立卸载）。
+> 把 GitHub MCP 整体封装成一个 DSH 插件：接入 GitHub 官方远程 MCP Server，token 存到 DSH 凭据中心（`.credentials.yaml`），可通过模型工具输入；GitHub 工具以 `mcp__github__*` 形式可用。附带**可选**面板插件 `dsh-github-mcp-hint`（需额外安装，见下文）。
 
 ---
 
@@ -11,17 +11,19 @@
 - **模型工具**：
   - `github_token_status` — 查看 token 是否已配置、来源、是否可写。
   - `github_set_token` — 输入/更新 token（写入凭据中心并刷新当前环境）。
-- **自动捆绑面板插件 `dsh-github-mcp-hint`**：设置 → 插件 → GitHub MCP 的示例 + 公开仓库统计 UI。
+- **面板插件 `dsh-github-mcp-hint`（可选，需额外安装）**：设置 → 插件 → GitHub MCP 的示例 + 公开仓库统计 UI。
 
 ---
 
 ## 🚀 快速开始
 
 ```sh
-# 1. 安装（会一并装上依赖的面板插件 dsh-github-mcp-hint）
-dsh plugin --profile web add dsh-github-mcp      # 若已发布到 npm
+# 1. 安装主插件
+dsh plugin --profile web add dsh-github-mcp      # npm 推荐
 # —— 或 ——
 dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # 从 GitHub 安装
+# 若要「设置 → 插件 → GitHub MCP」面板，需再单独安装面板插件：
+dsh plugin --profile web add dsh-github-mcp-hint
 
 # 2. 设置 token（对话里说即可）
 #    “帮我把 GitHub token 设为 ghp_xxx”
@@ -41,9 +43,13 @@ dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # 从 GitHub 安�
 dsh plugin --profile web add dsh-github-mcp
 ```
 
-会自动携带依赖 `dsh-github-mcp-hint`。
+安装会把 `dsh-github-mcp-hint` 一并装进 node_modules（作为依赖），但 **DSH 只把「顶层依赖」加入 profile 的 bundles 层**，因此面板插件**不会**自动启用。若需要「设置 → 插件 → GitHub MCP」面板，请**额外执行**：
 
-> 本包已发布到 npmjs registry：`dsh plugin --profile web add dsh-github-mcp`，会自动携带依赖 `dsh-github-mcp-hint`。
+```sh
+dsh plugin --profile web add dsh-github-mcp-hint
+```
+
+> 本包已发布到 npmjs registry：`dsh plugin --profile web add dsh-github-mcp`。
 
 ### 方式二：GitHub
 
@@ -165,6 +171,7 @@ dsh plugin --profile web remove dsh-github-mcp
 - **`github_set_token` 被拒**：启动环境里已有 `GITHUB_TOKEN`（只读）。先 `unset GITHUB_TOKEN`，再用工具保存到凭据中心。
 - **`serverName "github" already in use`**：你在 profile 里手动加过 `mcp-github` 行。删掉那行，交给本插件的 `cordis.patch.yml`（含 `mcp-github` 行）管理。
 - **token 改了不生效**：重启 DSH（mcp-client 启动时读一次）。
+- **装完 `dsh-github-mcp` 但没有「GitHub MCP」面板**：DSH 只把顶层依赖加入 bundles 层，`dsh-github-mcp-hint` 作为依赖不会自动启用。请再执行 `dsh plugin --profile web add dsh-github-mcp-hint`（或把它加进 profile 的 `dsh.profile.bundles`），然后重启 DSH。
 
 ---
 
