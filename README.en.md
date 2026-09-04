@@ -35,7 +35,7 @@ dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # from GitHub
 
 ## ⚙️ Install
 
-### npm (recommended, once published)
+### npm (recommended, published to npmjs)
 
 ```sh
 dsh plugin --profile web add dsh-github-mcp
@@ -43,7 +43,7 @@ dsh plugin --profile web add dsh-github-mcp
 
 Pulls in `dsh-github-mcp-hint` automatically.
 
-> **About npm publishing**: the package is npm-ready (`publishConfig.access: public`, a `files` whitelist, correct `main`/`exports`). To install from npm it must be published to a registry first: with an npm account/token, run `npm publish`. Currently only the GitHub version is published.
+> This package is now published to the npmjs registry. Install with `dsh plugin --profile web add dsh-github-mcp`; it pulls the `dsh-github-mcp-hint` dependency automatically.
 
 ### GitHub
 

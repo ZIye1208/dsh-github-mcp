@@ -8,7 +8,8 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
-    "README.en.md"
+    "README.en.md",
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public"
@@ -27,7 +28,11 @@
     "@deepseek-ai/cordis": "^4.0.2"
   },
   "dependencies": {
-    "dsh-github-mcp-hint": "github:ZIye1208/dsh-github-mcp-hint"
+    "dsh-github-mcp-hint": "^0.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZIye1208/dsh-github-mcp.git"
   },
   "license": "MIT"
 }

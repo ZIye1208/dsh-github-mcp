@@ -35,7 +35,7 @@ dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # 从 GitHub 安�
 
 ## ⚙️ 安装
 
-### 方式一：npm（推荐，发布后可用）
+### 方式一：npm（推荐，已发布到 npmjs）
 
 ```sh
 dsh plugin --profile web add dsh-github-mcp
@@ -43,7 +43,7 @@ dsh plugin --profile web add dsh-github-mcp
 
 会自动携带依赖 `dsh-github-mcp-hint`。
 
-> **关于 npm 发布**：本包已按可发布到 npm 配置（`publishConfig.access: public`、`files` 白名单、`main`/`exports` 正确）。要在 npm 上安装，需先把包发布到 npm registry：在具备 npm 账号（`npm login` / 配好 token）后执行 `npm publish`。当前只发布了 GitHub 版。
+> 本包已发布到 npmjs registry：`dsh plugin --profile web add dsh-github-mcp`，会自动携带依赖 `dsh-github-mcp-hint`。
 
 ### 方式二：GitHub
 
