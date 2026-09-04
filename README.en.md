@@ -19,7 +19,7 @@
 
 ```sh
 # 1. Install (also pulls the panel dependency dsh-github-mcp-hint)
-dsh plugin --profile <profile> add dsh-github-mcp        # once published to npm
+dsh plugin --profile web add dsh-github-mcp        # once published to npm
 # — or —
 dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # from GitHub
 
@@ -38,7 +38,7 @@ dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # from GitHub
 ### npm (recommended, once published)
 
 ```sh
-dsh plugin --profile <profile> add dsh-github-mcp
+dsh plugin --profile web add dsh-github-mcp
 ```
 
 Pulls in `dsh-github-mcp-hint` automatically.
@@ -97,13 +97,13 @@ On the next DSH start the plugin bridges it into `process.env.GITHUB_TOKEN`.
 
 ### Uninstall the whole plugin (incl. panel)
 ```sh
-dsh plugin --profile <profile> remove dsh-github-mcp
+dsh plugin --profile web remove dsh-github-mcp
 ```
 
 ### Uninstall only the panel (GitHub MCP unaffected)
 `dsh-github-mcp` bundles `dsh-github-mcp-hint` (as a dependency). It is **independently uninstallable**:
 1. remove `dsh-github-mcp-hint` from the profile's `dsh.profile.bundles`;
-2. `dsh plugin --profile <profile> remove dsh-github-mcp-hint`.
+2. `dsh plugin --profile web remove dsh-github-mcp-hint`.
 
 After that, `github_token_status` / `github_set_token` and every `mcp__github__*` keep working.
 

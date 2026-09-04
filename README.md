@@ -18,7 +18,9 @@
 ## 🚀 快速开始
 
 ```sh
-
+# 1. 安装（会一并装上依赖的面板插件 dsh-github-mcp-hint）
+dsh plugin --profile web add dsh-github-mcp      # 若已发布到 npm
+# —— 或 ——
 dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # 从 GitHub 安装
 
 # 2. 设置 token（对话里说即可）
@@ -33,9 +35,15 @@ dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # 从 GitHub 安�
 
 ## ⚙️ 安装
 
+### 方式一：npm（推荐，发布后可用）
 
+```sh
+dsh plugin --profile web add dsh-github-mcp
+```
 
+会自动携带依赖 `dsh-github-mcp-hint`。
 
+> **关于 npm 发布**：本包已按可发布到 npm 配置（`publishConfig.access: public`、`files` 白名单、`main`/`exports` 正确）。要在 npm 上安装，需先把包发布到 npm registry：在具备 npm 账号（`npm login` / 配好 token）后执行 `npm publish`。当前只发布了 GitHub 版。
 
 ### 方式二：GitHub
 
@@ -107,7 +115,7 @@ refs:
 ### 卸载整个插件（含面板）
 
 ```sh
-dsh plugin --profile <profile> remove dsh-github-mcp
+dsh plugin --profile web remove dsh-github-mcp
 ```
 
 ### 只卸载面板插件（不影响 GitHub MCP）
@@ -115,7 +123,7 @@ dsh plugin --profile <profile> remove dsh-github-mcp
 `dsh-github-mcp` 自动捆绑安装了面板插件 `dsh-github-mcp-hint`（作为依赖）。**可独立卸载**：
 
 1. 从 profile 的 `dsh.profile.bundles` 移除 `dsh-github-mcp-hint`；
-2. 卸载该包：`dsh plugin --profile <profile> remove dsh-github-mcp-hint`。
+2. 卸载该包：`dsh plugin --profile web remove dsh-github-mcp-hint`。
 
 卸载面板后，`github_token_status` / `github_set_token` 及所有 `mcp__github__*` 仍可用。
 
