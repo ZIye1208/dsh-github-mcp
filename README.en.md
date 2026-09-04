@@ -21,7 +21,7 @@
 # 1. Install (also pulls the panel dependency dsh-github-mcp-hint)
 dsh plugin --profile <profile> add dsh-github-mcp        # once published to npm
 # — or —
-dsh plugin --profile <profile> add github:ZIye1208/dsh-github-mcp   # from GitHub
+dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # from GitHub
 
 # 2. Set the token (just ask in chat)
 #    "set my GitHub token to ghp_xxx"
@@ -48,7 +48,7 @@ Pulls in `dsh-github-mcp-hint` automatically.
 ### GitHub
 
 ```sh
-dsh plugin --profile <profile> add github:ZIye1208/dsh-github-mcp
+dsh plugin --profile web add github:ZIye1208/dsh-github-mcp
 ```
 
 ### Local dev
