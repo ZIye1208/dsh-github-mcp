@@ -1,7 +1,7 @@
 {
   "name": "dsh-github-mcp",
-  "description": "DSH 插件：GitHub MCP 连接插件。把 GitHub MCP 封装成一个插件，token 存到 DSH 凭据中心(.credentials.yaml)，可通过模型工具输入，并提供 GitHub 工具(mcp__github__*)。自动捆绑安装面板插件 dsh-github-mcp-hint（可独立卸载）。",
-  "version": "0.2.0",
+  "description": "DSH 插件：GitHub MCP 连接插件。token、工具集与只读开关都存在 DSH 凭据中心(.credentials.yaml)，在「设置 → GitHub MCP」里改，改完自动重连；提供 GitHub 工具(mcp__github__*)。可选捆绑安装面板插件 dsh-github-mcp-hint。",
+  "version": "0.3.0",
   "type": "module",
   "main": "lib/index.mjs",
   "files": [
@@ -9,6 +9,8 @@
     "cordis.patch.yml",
     "README.md",
     "README.en.md",
+    "CHANGELOG.md",
+    "docs/settings.png",
     "LICENSE"
   ],
   "publishConfig": {
@@ -16,19 +18,30 @@
   },
   "exports": {
     ".": "./lib/index.mjs",
+    "./client": "./lib/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
     }
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2"
   },
-  "dependencies": {
-    "dsh-github-mcp-hint": "^0.2.0"
+  "optionalDependencies": {
+    "dsh-github-mcp-hint": "^0.3.1"
+  },
+  "devDependencies": {
+    "yaml": "^2.5.0"
   },
   "repository": {
     "type": "git",

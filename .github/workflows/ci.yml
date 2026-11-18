@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # optionalDependencies 指向的提示插件与测试无关，跳过避免 CI 拉外部包。
+      - run: npm install --omit=optional --no-audit --no-fund
+
+      - name: syntax
+        run: |
+          node --check lib/index.mjs
+          node --check lib/client.js
+          node --check lib/config.mjs
+
+      - name: tests
+        run: |
+          for file in test/*.test.mjs; do
+            echo "== $file"
+            node "$file"
+          done

@@ -1,165 +1,178 @@
 # dsh-github-mcp
 
-> Wraps GitHub MCP as a DSH plugin: connects to GitHub's official remote MCP Server, stores the token in the DSH credential center (`.credentials.yaml`), lets the token be set through model tools, and exposes the `mcp__github__*` tools. Comes with an **optional** panel plugin `dsh-github-mcp-hint` (installed separately; see below).
+Connect DSH to the **official GitHub MCP server**. The token, the toolset selection and the read-only switch all live in **Settings → GitHub MCP** and are stored in the DSH credential store, with automatic reconnects — no hand-editing `cordis.patch.yml`, no bridging the token into `process.env`, no restarts.
 
----
+![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-blue)
+![npm](https://img.shields.io/npm/v/dsh-github-mcp)
+![license](https://img.shields.io/badge/license-MIT-green)
 
-## 📚 Features
+![Settings: connection options](docs/settings.png)
 
-- **GitHub MCP connection**: via `@deepseek-ai/dsh-mcp-client` to `https://api.githubcopilot.com/mcp/`; GitHub tools appear as `mcp__github__*` (`search_repositories`, `list_pull_requests`, `create_pull_request`, `push_files`, `get_file_contents`, `merge_pull_request`, `add_issue_comment`, … 40+ tools).
-- **Token in the credential center**: the GitHub PAT lives in DSH's `.credentials.yaml` (`refs.GITHUB_TOKEN`), never in source or logs.
-- **Model tools**:
-  - `github_token_status` — check whether the token is configured, its source, and writability.
-  - `github_set_token` — set/update the token (writes to the credential center and refreshes the current environment).
-- **Panel plugin `dsh-github-mcp-hint` (optional, installed separately)**: the `Settings → Plugins → GitHub MCP` UI (examples + public repo stats).
+## What it fixes
 
----
+0.2.0 shipped a hand-written YAML parser that read `~/.dsh/.credentials.yaml`, injected the token into `process.env.GITHUB_TOKEN`, and let a `!!js` expression in `cordis.patch.yml` turn it into a request header. That chain had three problems:
 
-## 🚀 Quick start
+| | manual bridge (0.2.0) | this version (0.3.0) |
+|---|---|---|
+| where the token comes from | the plugin parses the YAML file itself | host `credentials` service via `${credential:GITHUB_TOKEN}` templates |
+| after changing the token | restart DSH | written to the credential store, the connection reconnects |
+| can the model see the plaintext | yes — `github_set_token` handed the PAT to the model | no — the settings form writes straight to the credential store |
+| changing toolsets | edit the `X-MCP-Toolsets` string in the patch | tick boxes, press Save |
+| diagnosing a failure | read logs, or guess | status line + `github_token_status` live probe |
 
-```sh
-# 1. Install the main plugin
-dsh plugin --profile web add dsh-github-mcp        # npm (recommended)
-# — or —
-dsh plugin --profile web add github:ZIye1208/dsh-github-mcp   # from GitHub
-# To get the "Settings → Plugins → GitHub MCP" panel, install the panel plugin separately:
-dsh plugin --profile web add dsh-github-mcp-hint
+Also corrected: the old README claimed "environment variables win and are read-only, `set` is rejected, changing the token needs a restart". None of that matches `dsh-credentials-local` — `resolve` prefers the file, and `set` has no env check and does call `notifyUpdated`.
 
-# 2. Set the token (just ask in chat)
-#    "set my GitHub token to ghp_xxx"
+## Install
 
-# 3. Restart DSH, then ask
-#    "is my GitHub token configured?"   (github_token_status)
-#    "how many stars/downloads do my repos have"  (mcp__github__* / panel)
+**Requires** DSH desktop 0.2.2-rc.3+ (uses the `mcpManager` service and the `settings.section` slot).
+
+### Option 1: npm (recommended)
+
+```powershell
+dsh plugin --profile desktop add dsh-github-mcp
 ```
 
----
+Pin the version so a release does not upgrade you silently:
 
-## ⚙️ Install
-
-### npm (recommended, published to npmjs)
-
-```sh
-dsh plugin --profile web add dsh-github-mcp
+```powershell
+dsh plugin --profile desktop add dsh-github-mcp@0.3.0 --save-exact
 ```
 
-Installing brings `dsh-github-mcp-hint` into node_modules (as a dependency), but **DSH adds only "top-level dependencies" to a profile's bundles layer**, so the panel plugin is **not** enabled automatically. To get the "Settings → Plugins → GitHub MCP" panel, run additionally:
+### Option 2: the Plugins page
 
-```sh
-dsh plugin --profile web add dsh-github-mcp-hint
+1. DSH desktop → **Settings** (bottom left) → **Plugins**
+2. **Add** (top right), then enter any of:
+   - npm: `dsh-github-mcp`
+   - GitHub: `github:ZIye1208/dsh-github-mcp`
+   - local directory: `H:/path/to/dsh-github-mcp`
+3. **Fully quit DSH and start it again** (plugins load at boot; hot reload does not apply)
+
+> npm installs are pre-built; GitHub installs use the source, which is plain JS with no bundler step.
+
+### Option 3: command line (equivalent)
+
+```powershell
+dsh plugin --profile desktop add dsh-github-mcp --save-exact
+dsh plugin --profile desktop add github:ZIye1208/dsh-github-mcp
 ```
 
-> This package is now published to the npmjs registry. Install with `dsh plugin --profile web add dsh-github-mcp`.
+Then quit and restart DSH.
 
-### GitHub
+### Verify
 
-```sh
-dsh plugin --profile web add github:ZIye1208/dsh-github-mcp
+```powershell
+Select-String -Path "$env:USERPROFILE\.dsh\profiles\desktop\package.json" -Pattern "dsh-github-mcp"
 ```
 
-### Local dev
+Both `dependencies` and `dsh.profile.bundles` must list it — a package in `dependencies` only is not activated.
 
-Link the local path in the profile's `package.json`, add it to `dsh.profile.bundles`, then restart DSH.
+## Usage
 
----
+Settings → **GitHub MCP** has three blocks:
 
-## 🔑 Prerequisites
+### 1. Personal Access Token
 
-1. **DSH** >= 0.1.x (uses the core `@deepseek-ai/dsh-mcp-client`).
-2. **GitHub PAT**: create at GitHub → Settings → Developer settings → Personal access tokens, with scopes `repo`, `read:org`, `read:packages`.
+- The input is `type=password`; it is cleared on submit and only a mask (`ghp_xxxxx••••wxyz`) is shown
+- **Save** writes to the credential store; **Clear** removes it
+- The status line reports the source: `configured (masked)` / `configured (env, read-only)` / `not configured`
+- **Permissions**: a classic PAT needs `repo`; to let the model only read code, use a fine-grained PAT scoped to the repos you need and enable **read-only mode**
 
----
+### 2. Connection options (toolsets)
 
-## 🔐 Set the token (three ways)
+The GitHub MCP server can trim its tool list per toolset. **Unchecked toolsets are never sent**, so they cost no context budget.
 
-### A. Model tool (recommended)
-Say: "set my GitHub token to ghp_xxxxxxxx" → the agent calls `github_set_token`, writing `~/.dsh/.credentials.yaml` → `refs.GITHUB_TOKEN`.
+- Ticking only changes a draft; **Save settings** writes it
+- After writing, the plugin reads back `configured === true`; a failed write raises an error instead of pretending to succeed
+- The status line shows `✓ Saved · toolsets repos,issues · read-only off · 23:58:31`
+- mcp-client listens for `credentials/reference-updated` and reconnects automatically
 
-### B. Edit the credential center
-Add to `~/.dsh/.credentials.yaml`:
+| Toolset | Tools | Covers |
+|---|---|---|
+| `repos` | 19 | files, commits, branches, code search |
+| `issues` | 10 | issues, comments, labels |
+| `pull_requests` | 10 | PRs, reviews, merges |
+| `actions` | 4 | workflow runs and logs |
+| `gists` | 4 | gists |
+| `orgs` | 1 | organizations and members |
+| `projects` | 3 | Projects v2 |
+| `notifications` | 6 | notifications |
+| `users` | 1 | user profiles |
+| `code_security` | 2 | code scanning alerts |
+| `dependabot` | 3 | dependency alerts |
+
+> Measured on 2026-11-18 by requesting `api.githubcopilot.com/mcp/` once per toolset (`X-MCP-Toolsets` with a single value). The counts sum to 63 while the full server exposes 46, because some tools belong to several toolsets. `repos + issues = 29` equals the combined total, so those two do not overlap.
+
+**`repos,issues` (29 tools) is the default.** Most of the remaining 46 are in `pull_requests`, `notifications` and `actions`.
+
+### 3. Read-only mode
+
+Sends `X-MCP-Readonly: true`, disabling write tools on the GitHub side. Good for "let the model read code, not change it".
+
+> After changing toolsets/read-only, **open a new session** to see the new tool list — the tool surface is snapshotted when a session starts.
+
+## How it works
+
+```
+settings UI (client.js)
+   │  ctx.remote.credentials.set(ref, value)
+   ▼
+host credentials service ──write──▶ ~/.dsh/.credentials.yaml
+   │                                refs: GITHUB_TOKEN / GITHUB_MCP_TOOLSETS / GITHUB_MCP_READONLY
+   │  credentials/reference-updated
+   ▼
+dsh-mcp-client re-expands templates → reconnects
+   │
+   ▼
+mcpManager.register("github", { ...headers are ${credential:REF} templates... })
+   │
+   ▼
+29 mcp__github__* tools reach the model context
+```
+
+Two design points:
+
+1. **Credential templates** come from `@deepseek-ai/dsh-mcp-client` (`${credential:NAME}`); the host expands them at connect time, so the plugin never holds the plaintext.
+2. **The connection goes through `mcpManager`**, not through a hand-inserted `@deepseek-ai/dsh-mcp-client` row in the patch. The latter hangs on `tools/list` on 0.2.2 with no visible status; `mcpManager` grants a 30 s startup budget and publishes the connection status through `manager.list()`.
+
+`cordis.patch.yml` is therefore a single insert:
+
 ```yaml
-version: 1
-refs:
-  GITHUB_TOKEN: ghp_xxxxxxxx
-```
-On the next DSH start the plugin bridges it into `process.env.GITHUB_TOKEN`.
-
-### C. Environment variable (legacy)
-`GITHUB_TOKEN=ghp_xxx` in the launching shell. Note: if `GITHUB_TOKEN` is already in the environment it wins and is read-only — `github_set_token` will be refused. `unset GITHUB_TOKEN` first to use A/B.
-
-> ⚠️ **A token change needs a DSH restart** — the mcp-client reads the token at startup (static header) and does not reconnect mid-run.
-
----
-
-## 🧭 Usage
-
-- **Token status**: ask "is my GitHub token configured?" → `github_token_status`.
-- **List/create PRs, push code, edit files, search code**: use natural language; the model calls `mcp__github__*`. Examples: "list all open PRs in owner/repo sorted by updated", "commit and push all changes on the current branch", "add a comment to owner/repo PR #123 and mark it ready for review", "search for keyword xxx in owner/repo".
-- **Panel UI**: Settings → Plugins → GitHub MCP (from `dsh-github-mcp-hint`: random 4 of 30 examples, public repo stats).
-
----
-
-## 🗑️ Uninstall / disable
-
-### Uninstall the whole plugin (incl. panel)
-```sh
-dsh plugin --profile web remove dsh-github-mcp
+- insert:
+    - id: dsh-github-mcp
+      name: 'dsh-github-mcp'
 ```
 
-### Uninstall only the panel (GitHub MCP unaffected)
-`dsh-github-mcp` bundles `dsh-github-mcp-hint` (as a dependency). It is **independently uninstallable**:
-1. remove `dsh-github-mcp-hint` from the profile's `dsh.profile.bundles`;
-2. `dsh plugin --profile web remove dsh-github-mcp-hint`.
+## Security model
 
-After that, `github_token_status` / `github_set_token` and every `mcp__github__*` keep working.
-
-### Disable only the panel (keep installed)
-In `cordis.patch.yml`:
-```yaml
-- id: dsh-github-mcp-hint
-  disabled: true
-```
-
----
-
-## 🧩 Architecture
-
-```
-token input ──(github_set_token)──► .credentials.yaml (refs.GITHUB_TOKEN)
-                                     │
-                                     ▼  bridged at startup
-                              process.env.GITHUB_TOKEN
-                                     │
-                                     ▼  mcp-client reads at startup
-                           Authorization: Bearer <token> ──► api.githubcopilot.com/mcp/
-                                     │
-                                     ▼
-                          registers mcp__github__* tools
-```
-
-- `dsh-github-mcp` = GitHub MCP connection + token credential center.
-- `dsh-github-mcp-hint` = panel UI (separate repo, uninstallable).
-- **Why the bridge**: DSH's credential store is never materialized into `process.env`, so the plugin bridges it at startup for the mcp-client.
-
----
-
-## ❓ Troubleshooting
-
-- **No `mcp__github__*`**: the token is unset or DSH wasn't restarted. Run `github_token_status`, then restart.
-- **`github_set_token` refused**: `GITHUB_TOKEN` is in the launching env (read-only). `unset GITHUB_TOKEN` first.
-- **`serverName "github" already in use`**: you added a manual `mcp-github` row. Remove it; this plugin's `cordis.patch.yml` owns that row.
-- **Token change not taking effect**: restart DSH.
-- **No "GitHub MCP" panel after `dsh-github-mcp`**: DSH adds only top-level dependencies to the bundles layer; `dsh-github-mcp-hint` (a transitive dependency) is not enabled automatically. Run `dsh plugin --profile web add dsh-github-mcp-hint` (or add it to the profile's `dsh.profile.bundles`), then restart DSH.
-
----
-
-## 📄 Repo relation
-
-| Repo | Role |
+| Question | Answer |
 |---|---|
-| `ZIye1208/dsh-github-mcp` | GitHub MCP connection + token credential center (this plugin) |
-| `ZIye1208/dsh-github-mcp-hint` | Panel UI (independent, uninstallable) |
+| Where is the token stored | `~/.dsh/.credentials.yaml`, mode `0600` (directory `0700`). **The file is plaintext YAML; DSH does not encrypt it** |
+| Who can read it | Any local program running as your user. That is inherent to local credentials; the plugin does not pretend otherwise |
+| Can the model see the token | No. The form writes straight to the credential store; `github_token_status` only reads the masked `describe()` output |
+| Does it reach logs | Expanded template values are added to the host redaction list; plugin logs print ref names, never values |
+| Network destinations | `https://api.githubcopilot.com/mcp/` (GitHub's MCP) and `https://api.github.com/user` (only when you run `github_token_status`) |
+
+`GITHUB_MCP_TOOLSETS` / `GITHUB_MCP_READONLY` share the same file only because "credential change → reconnect" is the working path; their values are `repos,issues` and `false`, not secrets.
+
+## Compatibility
+
+- DSH `0.2.2-rc.3` (desktop) tested; requires the host `mcpManager` and `credentials` services
+- Tool names are stable as `mcp__github__<raw_name>`, so allow-lists and tool governance keep matching
+- `dsh-github-mcp-hint` is now an `optionalDependencies` entry; the plugin works without it
+
+## Development
+
+No build step: `lib/client.js` is a hand-written `__ModuleLoader__` factory, `lib/index.mjs` is plain ESM.
+
+```powershell
+node --check lib/client.js
+node test/config.test.mjs
+node test/host.test.mjs
+node test/client.test.mjs
+node test/client.render.test.mjs
+node test/patch.test.mjs
+```
 
 ## License
 
-[MIT](./LICENSE)
+MIT
