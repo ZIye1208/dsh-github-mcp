@@ -6,7 +6,7 @@
 ![npm](https://img.shields.io/npm/v/dsh-github-mcp)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-![主界面截图 · 连接选项与工具集](https://raw.githubusercontent.com/ZIye1208/dsh-github-mcp/main/docs/preview.png)
+![设置页：连接选项](docs/settings.png)
 
 ## 它解决的问题
 

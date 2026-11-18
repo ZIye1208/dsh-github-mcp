@@ -6,7 +6,7 @@ Connect DSH to the **official GitHub MCP server**. The token, the toolset select
 ![npm](https://img.shields.io/npm/v/dsh-github-mcp)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-![Main UI screenshot · connection options and toolsets](https://raw.githubusercontent.com/ZIye1208/dsh-github-mcp/main/docs/preview.png)
+![Settings: connection options](docs/settings.png)
 
 ## What it fixes
 
