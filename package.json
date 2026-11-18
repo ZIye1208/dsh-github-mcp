@@ -36,7 +36,11 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": ">=4.0.2 <4.1.0 || >=4.1.0-rc.0 <5.0.0-0"
+    "@deepseek-ai/cordis": ">=4.0.1 <5.0.0"
+  },
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.2-rc.1 <0.3.0-0"
   },
   "optionalDependencies": {
     "dsh-github-mcp-hint": "^0.3.1"
