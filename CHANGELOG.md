@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.1] - 2026-11-18
+
+完整发布版。npm 上的 `0.3.0` 是在 `v0.3.0` tag 之后、后续 6 个提交之前打包的，缺 `screenshots.json`、`engines` 和修正后的 peer 声明。本版只补齐这些发布元数据，**功能代码与 0.3.0 完全一致**（同一次真机验证），大更新说明见下方 `0.3.0` 节。
+
+### 修复
+
+- **`peerDependencies["@deepseek-ai/cordis"]` 过窄**：`^4.0.2` → `>=4.0.1 <5.0.0`。原写法会静默排除 `4.1.0-rc` 一类的预发布构建（node-semver 只在同 major.minor.patch 元组的比较符自带预发布标签时放行），且本机 29 个同类插件中无此先例。
+- **仓库与 npm 内容不一致**：修掉后 `github:ZIye1208/dsh-github-mcp` 安装与 npm 安装拿到同一份元数据。
+
+### 新增
+
+- `engines.node: ">=20"`、`engines.dsh: ">=0.2.2-rc.1 <0.3.0-0"`。DSH 那条只声明实测过的 0.2.2 线：`>=0.2.0-rc.1 <0.3.0-0` 经 node-semver 实测**兜不住 `0.2.2-rc.3`**（`0.2.0` 与 `0.2.2` 属不同元组）。
+- `screenshots.json`：声明市场详情页使用的截图（`docs/settings.png`），替代从 README 抓图的启发式。
+
+### 测试
+
+沿用 0.3.0 的 22 个用例（config 7 / host 8 / client 1 / render 1 / patch 5），本版改动仅限 `package.json` 与文档，全部通过。
+
 ## [0.3.0] - 2026-11-18
 
 以 **DSH 0.2.2-rc.3 桌面端**为基线重写。核心变化：把「插件自己桥接 token」换成宿主原生的凭据模板 + `mcpManager`，并把配置搬到设置页。
@@ -48,4 +66,5 @@
 
 0.2.0 及更早的作者版本没有 CHANGELOG。仓库首个提交 `d36675d` 是 0.2.0 的文档修正。
 
+[0.3.1]: https://github.com/ZIye1208/dsh-github-mcp/releases/tag/v0.3.1
 [0.3.0]: https://github.com/ZIye1208/dsh-github-mcp/releases/tag/v0.3.0

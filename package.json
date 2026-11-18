@@ -1,7 +1,7 @@
 {
   "name": "dsh-github-mcp",
   "description": "把 GitHub 官方 MCP server 接进 DSH：token、工具集与只读开关都在「设置 → GitHub MCP」里改，值存 DSH 凭据中心，改完自动重连；工具以 mcp__github__* 提供。/ GitHub's official MCP server for DSH — token, toolsets and read-only mode live in Settings → GitHub MCP, stored in the credential store with auto-reconnect; tools exposed as mcp__github__*.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "main": "lib/index.mjs",
   "files": [

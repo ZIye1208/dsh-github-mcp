@@ -12,7 +12,7 @@
 
 上游 0.2.0 的做法是：插件在启动时手写一份 YAML 解析器去读 `~/.dsh/.credentials.yaml`，把 token 塞进 `process.env.GITHUB_TOKEN`，再由 `cordis.patch.yml` 里的 `!!js` 表达式展开成请求头。这条链有三个硬伤：
 
-| | 手工桥接（0.2.0） | 本版本（0.3.0） |
+| | 手工桥接（0.2.0） | 本版本（0.3.1） |
 |---|---|---|
 | token 从哪来 | 插件自己 parse YAML 文件 | 宿主 `credentials` 服务的 `${credential:GITHUB_TOKEN}` 模板 |
 | 改 token 后 | 必须重启 DSH | 写进凭据中心，连接自动重连 |
@@ -35,7 +35,7 @@ dsh plugin --profile desktop add dsh-github-mcp
 钉住版本（推荐，发新版不会意外升级）：
 
 ```powershell
-dsh plugin --profile desktop add dsh-github-mcp@0.3.0 --save-exact
+dsh plugin --profile desktop add dsh-github-mcp@0.3.1 --save-exact
 ```
 
 ### 方式二：插件页添加（不用记命令）

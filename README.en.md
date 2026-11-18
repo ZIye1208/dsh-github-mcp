@@ -12,7 +12,7 @@ Connect DSH to the **official GitHub MCP server**. The token, the toolset select
 
 0.2.0 shipped a hand-written YAML parser that read `~/.dsh/.credentials.yaml`, injected the token into `process.env.GITHUB_TOKEN`, and let a `!!js` expression in `cordis.patch.yml` turn it into a request header. That chain had three problems:
 
-| | manual bridge (0.2.0) | this version (0.3.0) |
+| | manual bridge (0.2.0) | this version (0.3.1) |
 |---|---|---|
 | where the token comes from | the plugin parses the YAML file itself | host `credentials` service via `${credential:GITHUB_TOKEN}` templates |
 | after changing the token | restart DSH | written to the credential store, the connection reconnects |
@@ -35,7 +35,7 @@ dsh plugin --profile desktop add dsh-github-mcp
 Pin the version so a release does not upgrade you silently:
 
 ```powershell
-dsh plugin --profile desktop add dsh-github-mcp@0.3.0 --save-exact
+dsh plugin --profile desktop add dsh-github-mcp@0.3.1 --save-exact
 ```
 
 ### Option 2: the Plugins page
