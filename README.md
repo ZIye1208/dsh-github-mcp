@@ -10,7 +10,7 @@
 
 ## 它解决的问题
 
-上游 0.2.0 的做法是：插件在启动时手写一份 YAML 解析器去读 `~/.dsh/.credentials.yaml`，把 token 塞进 `process.env.GITHUB_TOKEN`，再由 `cordis.patch.yml` 里的 `!!js` 表达式展开成请求头。这条链有三个硬伤：
+ 0.2.0 的做法是：插件在启动时手写一份 YAML 解析器去读 `~/.dsh/.credentials.yaml`，把 token 塞进 `process.env.GITHUB_TOKEN`，再由 `cordis.patch.yml` 里的 `!!js` 表达式展开成请求头。这条链有三个硬伤：
 
 | | 手工桥接（0.2.0） | 本版本（0.3.1） |
 |---|---|---|
@@ -20,7 +20,7 @@
 | 工具集怎么调 | 手改 patch 里的 `X-MCP-Toolsets` 字符串 | 设置页勾选，保存即生效 |
 | 出问题怎么查 | 看日志，或者猜 | 设置页显示状态 + `github_token_status` 做活体探测（可选） |
 
-顺带修掉的问题：原版 README 声称「环境变量优先且只读、`set` 会被拒、改 token 必须重启」——这三条与 `dsh-credentials-local` 的实际实现都不符（`resolve` 是文件优先，`set` 无 env 检查且会 `notifyUpdated`）。
+顺带修掉的问题：原 README 声称「环境变量优先且只读、`set` 会被拒、改 token 必须重启」——这三条与 `dsh-credentials-local` 的实际实现都不符（`resolve` 是文件优先，`set` 无 env 检查且会 `notifyUpdated`）。
 
 ## 安装
 
