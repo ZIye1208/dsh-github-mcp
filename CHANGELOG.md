@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.4.0] - 2026-11-26
+
+P1 架构修复：非密钥配置迁入 Settings/volatile Config，Secret 仍走 credentials；移除 hint 可选依赖并重建可复现测试/CI。
+
+### 破坏性变更
+
+- `toolsets`、`readOnly`、`serverName` 不再由 `GITHUB_MCP_TOOLSETS` / `GITHUB_MCP_READONLY` 凭据引用驱动，改由插件 Config + Settings 管理。
+- 新安装默认 `readOnly: false`；已有旧配置迁移时保留原值，不静默改变用户的只读选择。
+- 主包删除 `dsh-github-mcp-hint` optionalDependency；hint 不再随主包安装。
+- Node 最低版本提升到 `>=24.9.0`，新增生产依赖 `@deepseek-ai/schemastery ~3.19.0`。
+- `serverName` 可配置；修改后工具命名空间变化，需要新开会话。
+
+### 新增
+
+- 设置页从 Settings view 读取权威配置，完全移除 `localStorage` 配置快照。
+- `settings.mutate()` 一次原子保存三个字段，并携带 `expectedRevision` 防止跨标签页覆盖。
+- 监听 `settings/document-updated`、`credentials/reference-updated` 与 `mcpManager.watch`，卸载时退订并 abort/dispose。
+- 新增用户主动「测试连接」按钮，使用公共 `mcpManager.probe()`；只展示耗时、工具数与关闭确认，不暴露原始错误。
+- 连接状态改为中文并紧邻「连接选项」标题；工具命名空间改为默认折叠的高级项，输入栏收窄到 `240px`。
+- Host 监听 `loader/volatile-update`，通过串行队列停止旧注册并重注册；同名冲突返回稳定错误码。
+- 首次启动迁移旧凭据选项到 Config；已有 Config 优先、非法旧值忽略、旧引用保留供回滚。
+
+### 安全与兼容
+
+- `github_token_status` 继续纯本地运行，不 resolve PAT、不联网、不返回掩码或其它 server。
+- Client 显式注入 `@deepseek-ai/dsh-api-remotes`，避免依赖 Settings 的传递注入。
+- DSH 版本门收紧为 `>=0.2.2-rc.5 <0.2.3-0`，只放行完成 Settings/Remote/MCP 组合核验的基线。
+- 设置页保存前预检 `serverName` 重名；Host 通过隐藏 volatile `registrationError` 回传稳定冲突码，避免误判正常 registration 的 `configured: true`；保留的 `configured: false` runtime record 不阻止重注册。
+- Settings 与 token 使用独立刷新代次，避免并发事件互相作废；外部 Settings 更新不会覆盖未保存草稿。
+- 移除硬编码工具数，设置页显示 manager 的真实 `toolCount`。
+- CI 改为 Windows/Ubuntu、Node `24.9.0`、Action commit SHA、`npm ci`、`node --test` 与 `npm pack --dry-run`。
+
+### 测试
+
+- 69 个 `node:test` 用例：config 10 / host 26 / client 1 / render 1 / client-actions 23 / patch 8。
+- 覆盖严格配置校验、volatile 重注册、串行队列、迁移与回滚边界、Settings 原子保存、revision 冲突、token fallback、probe 白名单、watch/事件清理、中文连接状态、高级命名空间折叠与零跳过。
+
 ## [0.3.2] - 2026-11-26
 
 P0 安全止血：不迁移配置存储，不改变 `mcp__github__*` 工具名与连接方式。本版只创建 `v0.3.2` tag，不创建 GitHub Release；正式发行版随 `0.4.0` 发布。
@@ -88,6 +125,7 @@ P0 安全止血：不迁移配置存储，不改变 `mcp__github__*` 工具名�
 
 0.2.0 及更早的作者版本没有 CHANGELOG。仓库首个提交 `d36675d` 是 0.2.0 的文档修正。
 
+[0.4.0]: https://github.com/ZIye1208/dsh-github-mcp/releases/tag/v0.4.0
 [0.3.2]: https://github.com/ZIye1208/dsh-github-mcp/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/ZIye1208/dsh-github-mcp/releases/tag/v0.3.1
 [0.3.0]: https://github.com/ZIye1208/dsh-github-mcp/releases/tag/v0.3.0

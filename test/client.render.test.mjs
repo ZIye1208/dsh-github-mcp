@@ -1,7 +1,5 @@
 // client half 的渲染分支单测：node test/client.render.test.mjs
-//
-// 用假的 createElement 把组件渲染成一棵普通对象树（不依赖真 React），
-// 覆盖 ready 态：标题、token 状态行、11 个工具集复选框、只读开关、两个按钮。
+// 用假的 createElement 把组件渲染成一棵普通对象树（不依赖真 React）。
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -16,9 +14,7 @@ function collect(node, out = []) {
     for (const child of node) collect(child, out);
     return out;
   }
-  if (typeof node === "object" && node.children !== undefined) {
-    collect(node.children, out);
-  }
+  if (typeof node === "object" && node.children !== undefined) collect(node.children, out);
   return out;
 }
 
@@ -33,33 +29,42 @@ function walk(node, visit) {
   if (node.children !== undefined) walk(node.children, visit);
 }
 
-test("ready 态能渲染出完整设置表单", async () => {
+test("ready 态从 Settings view 渲染完整设置表单", async () => {
   let definition;
   globalThis.window = {
     __ModuleLoader__: { load(def) { definition = def; } },
-    localStorage: {
-      getItem: () => null,
-      setItem: () => {},
-    },
   };
 
-  let stateIndex = 0;
   const readyState = {
     status: "ready",
-    error: null,
-    data: {
-      GITHUB_TOKEN: { configured: true, source: "file", writable: true, masked: "ghp_1****abcd" },
-      GITHUB_MCP_TOOLSETS: { configured: true, source: "file", writable: true },
-      GITHUB_MCP_READONLY: { configured: true, source: "file", writable: true },
+    view: {
+      ns: "dsh-github-mcp",
+      revision: "rev-1",
+      value: { toolsets: ["repos", "issues"], readOnly: false, serverName: "github" },
     },
+    token: { configured: true, source: "file", writable: true, masked: "ghp_1****abcd" },
+    writable: true,
+    error: null,
   };
+  const values = [
+    readyState,
+    "",
+    ["repos", "issues"],
+    false,
+    "github",
+    false,
+    null,
+    { state: "connected", toolCount: 29 },
+    true,
+    null,
+  ];
+  let stateIndex = 0;
 
   const React = {
     createElement: (type, props, ...children) => ({ type, props, children }),
-    useState: (initial) => {
+    useState(initial) {
       const index = stateIndex++;
-      const value = index === 0 ? readyState : typeof initial === "function" ? initial() : initial;
-      return [value, () => {}];
+      return [index in values ? values[index] : typeof initial === "function" ? initial() : initial, () => {}];
     },
     useCallback: (fn) => fn,
     useRef: (initial) => ({ current: initial }),
@@ -73,10 +78,16 @@ test("ready 态能渲染出完整设置表单", async () => {
 
   await import("../lib/client.js");
   const exports = definition.factory(require);
-
   const registered = [];
-  const ctx = {
-    locale: { bind: () => (key) => key, register: () => () => {} },
+  let dictionary = null;
+  exports.apply({
+    locale: {
+      bind: () => (key) => dictionary?.[key] ?? key,
+      register: (_ns, table) => {
+        dictionary = table.zh;
+        return () => {};
+      },
+    },
     effect: (fn) => fn(),
     slots: {
       inject: (_name, fn) => fn(),
@@ -85,41 +96,44 @@ test("ready 态能渲染出完整设置表单", async () => {
         return () => {};
       },
     },
-  };
-
-  exports.apply(ctx);
-  const Section = registered[0].component;
+  });
 
   stateIndex = 0;
-  const tree = Section();
+  const tree = registered[0].component();
   const texts = collect(tree);
 
-  // t() 在测试里被 stub 成「原样返回 key」，所以断言的是 locale key。
-  assert.ok(texts.includes("title"), "missing title");
-  assert.ok(texts.includes("tokenTitle"), "missing token title");
-  assert.ok(texts.includes("optionsTitle"), "missing connection options title");
-  assert.ok(texts.includes("readOnlyTitle"), "missing read-only title");
-  assert.ok(texts.includes("save"), "missing token save button");
-  assert.ok(texts.includes("clear"), "missing token clear button");
-  assert.ok(texts.includes("saveOptions"), "missing save-options button");
-  assert.ok(texts.includes("reset"), "missing reset button");
-  // 初始态草稿与已保存一致，不应出现「未保存改动」提示。
-  assert.ok(!texts.includes("dirtyHint"), "unsaved hint should be hidden when nothing changed");
-  assert.ok(
-    texts.some((text) => text.includes("ghp_1****abcd")),
-    "masked token not rendered",
-  );
-  // 每个工具集都要显示该组工具数，且与名字同处一行（nowrap）。
-  for (const count of [19, 10, 10, 4, 4, 1, 3, 6, 1, 2, 3]) {
-    assert.ok(
-      texts.some((text) => text.trim() === `${count} tools` || text.trim() === `${count} toolsCountUnit`),
-      `missing tool count for a toolset (${count})`,
-    );
-  }
+  assert.ok(texts.includes("GitHub MCP"));
+  assert.ok(texts.includes("Personal Access Token"));
+  assert.ok(texts.includes("连接选项"));
+  assert.ok(texts.includes("只读模式"));
+  assert.ok(texts.includes("保存设置"));
+  assert.ok(texts.includes("还原"));
+  assert.ok(texts.includes("测试连接"));
+  assert.ok(texts.includes("工具命名空间（高级）"));
+  assert.ok(texts.some((text) => text.includes("一般无需修改")));
+  assert.ok(texts.includes("已连接 · 29 个工具"));
+  assert.ok(!texts.some((text) => text.includes("connected") || text.includes("29 tools")), "raw connection state must not render");
+  assert.ok(!texts.some((text) => text.includes("ghp_1****abcd")), "masked token must not be rendered");
+  assert.ok(!texts.includes("有未保存的改动"));
 
   const checkboxes = [];
+  let serverNameInput = null;
+  let namespaceDetails = null;
+  let connectionHeader = null;
   walk(tree, (node) => {
     if (node.type === "input" && node.props?.type === "checkbox") checkboxes.push(node);
+    if (node.type === "input" && node.props?.type === "text" && node.props?.value === "github") serverNameInput = node;
+    if (node.type === "details" && collect(node).includes("工具命名空间（高级）")) namespaceDetails = node;
+    if (node.type === "div" && node.props?.style?.justifyContent === "flex-start") {
+      const headerText = collect(node);
+      if (headerText.includes("连接选项") && headerText.includes("已连接 · 29 个工具")) connectionHeader = node;
+    }
   });
+  assert.ok(connectionHeader, "connection status must share the Connection options header row");
   assert.equal(checkboxes.length, 12, "expected 11 toolset checkboxes + 1 read-only switch");
+  assert.equal(checkboxes.at(-1).props.checked, false, "new installs must not default to read-only");
+  assert.ok(serverNameInput, "missing serverName input");
+  assert.equal(serverNameInput.props.style.width, 240);
+  assert.ok(namespaceDetails, "missing advanced namespace disclosure");
+  assert.notEqual(namespaceDetails.props.open, true, "advanced namespace must start collapsed");
 });

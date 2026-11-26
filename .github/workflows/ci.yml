@@ -2,6 +2,7 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -9,16 +10,18 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: '24.9.0'
+          cache: npm
 
-      # optionalDependencies 指向的提示插件与测试无关，跳过避免 CI 拉外部包。
-      - run: npm install --omit=optional --no-audit --no-fund
+      - run: npm ci
 
       - name: syntax
         run: |
@@ -27,8 +30,7 @@ jobs:
           node --check lib/config.mjs
 
       - name: tests
-        run: |
-          for file in test/*.test.mjs; do
-            echo "== $file"
-            node "$file"
-          done
+        run: node --test
+
+      - name: package
+        run: npm pack --dry-run

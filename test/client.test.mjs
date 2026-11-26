@@ -40,7 +40,14 @@ test("client bundle 的模块契约", async () => {
   assert.equal(typeof definition.factory, "function");
 
   const exports = definition.factory(require);
-  assert.deepEqual(exports.inject, ["slots", "locale", "remote", "remote.credentials"]);
+  assert.deepEqual(exports.inject, [
+    "slots",
+    "locale",
+    "remote",
+    "remote.credentials",
+    "remote.settings",
+    "remote.mcpManager",
+  ]);
   assert.equal(typeof exports.apply, "function");
 
   const seen = { inject: null, registered: [], effects: 0 };
