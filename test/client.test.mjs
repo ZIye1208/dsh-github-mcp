@@ -24,6 +24,7 @@ test("client bundle 的模块契约", async () => {
     createElement: () => null,
     useState: (initial) => [typeof initial === "function" ? initial() : initial, () => {}],
     useCallback: (fn) => fn,
+    useRef: (initial) => ({ current: initial }),
     useEffect: () => {},
   };
 

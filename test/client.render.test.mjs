@@ -62,6 +62,7 @@ test("ready 态能渲染出完整设置表单", async () => {
       return [value, () => {}];
     },
     useCallback: (fn) => fn,
+    useRef: (initial) => ({ current: initial }),
     useEffect: () => {},
   };
 

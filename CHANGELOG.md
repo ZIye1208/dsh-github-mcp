@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.2] - 2026-11-26
+
+P0 安全止血：不迁移配置存储，不改变 `mcp__github__*` 工具名与连接方式。本版只创建 `v0.3.2` tag，不创建 GitHub Release；正式发行版随 `0.4.0` 发布。
+
+### 安全
+
+- `github_token_status` 不再 `resolve()` PAT，不再请求 `/user` 或 MCP `initialize`，改为纯本地结构化状态查询。
+- 状态结果不再包含 token 掩码、其它 server 名、全局工具名或原始连接错误；只保留 `github` 当前连接状态的白名单字段与稳定枚举，`credentials.describe()` 失败时只返回未配置状态。
+- 删除 loader 私有 fiber 扫描、硬编码 `file:///H:/...` 导入与 `cell.value` 私有访问。
+- `inject` 明确包含 `mcpManager`；缺少必需服务时启动失败，不再静默降级。
+- `mcpManager.register()` 不再传公共类型之外的 `enabled`。
+- 插件日志统一脱敏并限长。
+- 设置页清除 token 后回读 `describe()`：env/project-env/user-env fallback 仍生效时显示警告；文件值仍在时显示失败。
+- 设置页不再回显远端 `error.message`；未知错误只显示通用失败提示。
+- 保存/清除操作增加同步 `busyRef` 锁，避免快速重复点击产生并发写。
+
+### 测试
+
+- 本地语法检查通过。
+- 38 个 `node:test` 用例通过：config 7 / host 18 / client 1 / render 1 / client-actions 6 / patch 5。
+- host 用例改为假服务，不再依赖本机 DSH 安装目录。
+
 ## [0.3.1] - 2026-11-18
 
 完整发布版。npm 上的 `0.3.0` 是在 `v0.3.0` tag 之后、后续 6 个提交之前打包的，缺 `screenshots.json`、`engines` 和修正后的 peer 声明。本版只补齐这些发布元数据，**功能代码与 0.3.0 完全一致**（同一次真机验证），大更新说明见下方 `0.3.0` 节。
@@ -66,5 +88,6 @@
 
 0.2.0 及更早的作者版本没有 CHANGELOG。仓库首个提交 `d36675d` 是 0.2.0 的文档修正。
 
+[0.3.2]: https://github.com/ZIye1208/dsh-github-mcp/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/ZIye1208/dsh-github-mcp/releases/tag/v0.3.1
 [0.3.0]: https://github.com/ZIye1208/dsh-github-mcp/releases/tag/v0.3.0

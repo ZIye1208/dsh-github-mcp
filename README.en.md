@@ -2,7 +2,7 @@
 
 Connect DSH to the **official GitHub MCP server**. The token, the toolset selection and the read-only switch all live in **Settings → GitHub MCP** and are stored in the DSH credential store, with automatic reconnects — no hand-editing `cordis.patch.yml`, no bridging the token into `process.env`, no restarts.
 
-![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-blue)
+![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.5-blue)
 ![npm](https://img.shields.io/npm/v/dsh-github-mcp)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -12,19 +12,19 @@ Connect DSH to the **official GitHub MCP server**. The token, the toolset select
 
 0.2.0 shipped a hand-written YAML parser that read `~/.dsh/.credentials.yaml`, injected the token into `process.env.GITHUB_TOKEN`, and let a `!!js` expression in `cordis.patch.yml` turn it into a request header. That chain had three problems:
 
-| | manual bridge (0.2.0) | this version (0.3.1) |
+| | manual bridge (0.2.0) | this version (0.3.2) |
 |---|---|---|
 | where the token comes from | the plugin parses the YAML file itself | host `credentials` service via `${credential:GITHUB_TOKEN}` templates |
 | after changing the token | restart DSH | written to the credential store, the connection reconnects |
 | can the model see the plaintext | yes — `github_set_token` handed the PAT to the model | no — the settings form writes straight to the credential store |
 | changing toolsets | edit the `X-MCP-Toolsets` string in the patch | tick boxes, press Save |
-| diagnosing a failure | read logs, or guess | status line + `github_token_status` live probe |
+| diagnosing a failure | read logs, or guess | status line + `github_token_status` local diagnostics (no network access) |
 
 Also corrected: the old README claimed "environment variables win and are read-only, `set` is rejected, changing the token needs a restart". None of that matches `dsh-credentials-local` — `resolve` prefers the file, and `set` has no env check and does call `notifyUpdated`.
 
 ## Install
 
-**Requires** DSH desktop 0.2.2-rc.3+ (uses the `mcpManager` service and the `settings.section` slot).
+**Requires** DSH desktop with declared compatibility `>=0.2.2-rc.1 <0.3.0-0`; the local verification baseline for 0.3.2 is `0.2.2-rc.5` (uses the `mcpManager` service and the `settings.section` slot).
 
 ### Option 1: npm (recommended)
 
@@ -35,7 +35,7 @@ dsh plugin --profile desktop add dsh-github-mcp
 Pin the version so a release does not upgrade you silently:
 
 ```powershell
-dsh plugin --profile desktop add dsh-github-mcp@0.3.1 --save-exact
+dsh plugin --profile desktop add dsh-github-mcp@0.3.2 --save-exact
 ```
 
 ### Option 2: the Plugins page
@@ -73,8 +73,9 @@ Settings → **GitHub MCP** has three blocks:
 ### 1. Personal Access Token
 
 - The input is `type=password`; it is cleared on submit and only a mask (`ghp_xxxxx••••wxyz`) is shown
-- **Save** writes to the credential store; **Clear** removes it
-- The status line reports the source: `configured (masked)` / `configured (env, read-only)` / `not configured`
+- **Save** writes to the credential store; **Clear** removes the credential-file override
+- If `GITHUB_TOKEN` also exists in the launch environment, project `.env`, or user `.env`, it becomes active again after Clear. The settings page shows a fallback warning; remove that variable and restart DSH to fully clear it
+- The status line reports the source: `configured (masked) · from the credential store` / `from the launch environment` / `from project .env` / `from user .env` / `not configured`
 - **Permissions**: a classic PAT needs `repo`; to let the model only read code, use a fine-grained PAT scoped to the repos you need and enable **read-only mode**
 
 ### 2. Connection options (toolsets)
@@ -108,6 +109,8 @@ The GitHub MCP server can trim its tool list per toolset. **Unchecked toolsets a
 
 Sends `X-MCP-Readonly: true`, disabling write tools on the GitHub side. Good for "let the model read code, not change it".
 
+> Read-only mode relies on GitHub MCP's `X-MCP-Readonly` tool filter; it is **not** a substitute for PAT permissions. Keep using a least-privilege fine-grained PAT, and do not grant write access when the model should only read code.
+
 > After changing toolsets/read-only, **open a new session** to see the new tool list — the tool surface is snapshotted when a session starts.
 
 ## How it works
@@ -131,7 +134,7 @@ mcpManager.register("github", { ...headers are ${credential:REF} templates... })
 
 Two design points:
 
-1. **Credential templates** come from `@deepseek-ai/dsh-mcp-client` (`${credential:NAME}`); the host expands them at connect time, so the plugin never holds the plaintext.
+1. **Credential templates** come from `@deepseek-ai/dsh-mcp-client` (`${credential:NAME}`); the host expands them at connect time. The Host status tool only calls `describe()` and never resolves the PAT.
 2. **The connection goes through `mcpManager`**, not through a hand-inserted `@deepseek-ai/dsh-mcp-client` row in the patch. The latter hangs on `tools/list` on 0.2.2 with no visible status; `mcpManager` grants a 30 s startup budget and publishes the connection status through `manager.list()`.
 
 `cordis.patch.yml` is therefore a single insert:
@@ -146,17 +149,17 @@ Two design points:
 
 | Question | Answer |
 |---|---|
-| Where is the token stored | `~/.dsh/.credentials.yaml`, mode `0600` (directory `0700`). **The file is plaintext YAML; DSH does not encrypt it** |
-| Who can read it | Any local program running as your user. That is inherent to local credentials; the plugin does not pretend otherwise |
-| Can the model see the token | No. The form writes straight to the credential store; `github_token_status` only reads the masked `describe()` output |
-| Does it reach logs | Expanded template values are added to the host redaction list; plugin logs print ref names, never values |
-| Network destinations | `https://api.githubcopilot.com/mcp/` (GitHub's MCP) and `https://api.github.com/user` (only when you run `github_token_status`) |
+| Where is the token stored | `~/.dsh/.credentials.yaml`. On POSIX the host creates it with mode `0600` and directory `0700`; on Windows this depends on the host implementation and ACLs and is not equivalent to POSIX permissions. **The file is plaintext YAML; DSH does not encrypt it** |
+| Who can read it | Usually any local program running as your user. That is inherent to local credentials; the plugin does not pretend otherwise |
+| Can the model see the token | No. The form writes straight to the credential store; `github_token_status` only reads `describe()` source/status, never resolves the PAT, and never returns a mask |
+| Can logs or UI errors contain it | Plugin logs print ref names or redacted diagnostics; unknown remote errors show only a generic failure message, not `error.message` |
+| Network destinations | The main plugin only connects to `https://api.githubcopilot.com/mcp/`; `github_token_status` does not access the network |
 
 `GITHUB_MCP_TOOLSETS` / `GITHUB_MCP_READONLY` share the same file only because "credential change → reconnect" is the working path; their values are `repos,issues` and `false`, not secrets.
 
 ## Compatibility
 
-- DSH `0.2.2-rc.3` (desktop) tested; requires the host `mcpManager` and `credentials` services
+- DSH declares compatibility with `>=0.2.2-rc.1 <0.3.0-0`; 0.3.2 was statically checked and tested locally on `0.2.2-rc.5`, and requires the host `mcpManager` and `credentials` services
 - Tool names are stable as `mcp__github__<raw_name>`, so allow-lists and tool governance keep matching
 - `dsh-github-mcp-hint` is now an `optionalDependencies` entry; the plugin works without it
 
@@ -170,6 +173,7 @@ node test/config.test.mjs
 node test/host.test.mjs
 node test/client.test.mjs
 node test/client.render.test.mjs
+node test/client-actions.test.mjs
 node test/patch.test.mjs
 ```
 

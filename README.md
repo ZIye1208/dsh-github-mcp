@@ -2,7 +2,7 @@
 
 给 DSH 接入 **GitHub 官方 MCP 服务器**。token、工具集、只读开关都在「设置 → GitHub MCP」里改，值存进 DSH 凭据中心，改完自动重连——不用手改 `cordis.patch.yml`，不用把 token 桥进 `process.env`，不用重启。
 
-![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.3-blue)
+![DSH](https://img.shields.io/badge/DSH-0.2.2--rc.5-blue)
 ![npm](https://img.shields.io/npm/v/dsh-github-mcp)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -10,21 +10,21 @@
 
 ## 它解决的问题
 
- 0.2.0 的做法是：插件在启动时手写一份 YAML 解析器去读 `~/.dsh/.credentials.yaml`，把 token 塞进 `process.env.GITHUB_TOKEN`，再由 `cordis.patch.yml` 里的 `!!js` 表达式展开成请求头。这条链有三个硬伤：
+0.2.0 的做法是：插件在启动时手写一份 YAML 解析器去读 `~/.dsh/.credentials.yaml`，把 token 塞进 `process.env.GITHUB_TOKEN`，再由 `cordis.patch.yml` 里的 `!!js` 表达式展开成请求头。这条链有三个硬伤：
 
-| | 手工桥接（0.2.0） | 本版本（0.3.1） |
+| | 手工桥接（0.2.0） | 本版本（0.3.2） |
 |---|---|---|
 | token 从哪来 | 插件自己 parse YAML 文件 | 宿主 `credentials` 服务的 `${credential:GITHUB_TOKEN}` 模板 |
 | 改 token 后 | 必须重启 DSH | 写进凭据中心，连接自动重连 |
 | 模型能看到明文吗 | 能——`github_set_token` 让模型经手 PAT | 不能——设置页输入框直写凭据中心，模型侧只有一个只读状态工具 |
 | 工具集怎么调 | 手改 patch 里的 `X-MCP-Toolsets` 字符串 | 设置页勾选，保存即生效 |
-| 出问题怎么查 | 看日志，或者猜 | 设置页显示状态 + `github_token_status` 做活体探测（可选） |
+| 出问题怎么查 | 看日志，或者猜 | 设置页显示状态 + `github_token_status` 做纯本地诊断（不访问网络） |
 
 顺带修掉的问题：原 README 声称「环境变量优先且只读、`set` 会被拒、改 token 必须重启」——这三条与 `dsh-credentials-local` 的实际实现都不符（`resolve` 是文件优先，`set` 无 env 检查且会 `notifyUpdated`）。
 
 ## 安装
 
-**前置**：DSH 桌面端 0.2.2-rc.3 及以上（用到 `mcpManager` 服务与 `settings.section` 席位）。
+**前置**：DSH 桌面端声明兼容 `>=0.2.2-rc.1 <0.3.0-0`；0.3.2 的本地验证基线是 `0.2.2-rc.5`（用到 `mcpManager` 服务与 `settings.section` 席位）。
 
 ### 方式一：npm（推荐）
 
@@ -35,7 +35,7 @@ dsh plugin --profile desktop add dsh-github-mcp
 钉住版本（推荐，发新版不会意外升级）：
 
 ```powershell
-dsh plugin --profile desktop add dsh-github-mcp@0.3.1 --save-exact
+dsh plugin --profile desktop add dsh-github-mcp@0.3.2 --save-exact
 ```
 
 ### 方式二：插件页添加（不用记命令）
@@ -79,8 +79,9 @@ Select-String -Path "$env:USERPROFILE\.dsh\profiles\desktop\package.json" -Patte
 ### 1. Personal Access Token
 
 - 输入框是 `type=password`，提交后立刻清空，页面只回显掩码（`ghp_xxxxx••••wxyz`）
-- 「保存」写入凭据中心；「清除」删除该凭据
-- 状态行会告诉你来源：`已配置（掩码）` / `已配置（环境变量，只读）` / `未配置`
+- 「保存」写入凭据中心；「清除」删除凭据文件中的覆盖值
+- 如果启动环境变量、项目 `.env` 或用户 `.env` 中还有 `GITHUB_TOKEN`，清除后它会重新生效；设置页会显示 fallback 警告，需删除对应环境变量并重启 DSH
+- 状态行会告诉你来源：`已配置（掩码） · 来自凭据中心` / `来自启动环境变量` / `来自项目 .env` / `来自用户 .env` / `未配置`
 - **token 权限**：classic PAT 勾 `repo`；只想让 model 读代码的话，用 fine-grained PAT 并只授你需要的仓库读权限，同时把「只读模式」打开
 
 ### 2. 连接选项（工具集）
@@ -114,6 +115,8 @@ GitHub 的 MCP 服务器支持按 toolset 裁剪下发的工具。**没勾选的
 
 打开后请求带 `X-MCP-Readonly: true`，GitHub 侧禁用写入类工具。适合「只让模型看代码，不让它改东西」的场景。
 
+> 只读模式依赖 GitHub MCP 的 `X-MCP-Readonly` 工具过滤，**不是** PAT 权限的替代品。仍应使用最小权限 fine-grained PAT；写权限请勿授予只允许模型阅读代码的场景。
+
 > 改了工具集/只读之后，已经开着的会话要**新开一个**才能看到新的工具清单（工具面在会话建立时快照）。
 
 ## 工作原理
@@ -137,7 +140,7 @@ mcpManager.register("github", { ...headers 里是 ${credential:REF} 模板... })
 
 两个关键点：
 
-1. **凭据模板**由 `@deepseek-ai/dsh-mcp-client` 提供（`${credential:NAME}`），宿主在连接时展开，插件自己碰不到明文。
+1. **凭据模板**由 `@deepseek-ai/dsh-mcp-client` 提供（`${credential:NAME}`），宿主在连接时展开；Host 侧状态工具只调用 `describe()`，不 `resolve()` PAT。
 2. **连接交给 `mcpManager`**，而不是在 patch 里直接手插一个 `@deepseek-ai/dsh-mcp-client` 行。后者在 0.2.2 上会挂在 `tools/list` 上且状态不可见；`mcpManager` 给 30 秒启动预算，并把连接状态发布到 `manager.list()`，出问题能看见。
 
 `cordis.patch.yml` 因此只用了一行：
@@ -152,17 +155,17 @@ mcpManager.register("github", { ...headers 里是 ${credential:REF} 模板... })
 
 | 问题 | 答案 |
 |---|---|
-| token 存在哪 | `~/.dsh/.credentials.yaml`，权限 `0600`（目录 `0700`）。**磁盘上是明文 YAML，DSH 不加密它** |
-| 谁能读到 | 同机的、以你用户身份运行的程序都能读。这是本地凭据的固有限制，插件不假装能挡住 |
-| 模型能看到 token 吗 | 不能。设置页输入框直接写凭据中心，`github_token_status` 只读 `describe()` 的掩码/来源，不 `resolve()` |
-| 日志里会有 token 吗 | 模板展开的值由宿主加入 redact 列表；插件自己的日志只打 ref 名，不打值 |
-| 会外联到哪 | 只有 `https://api.githubcopilot.com/mcp/`（GitHub 官方 MCP）和 `https://api.github.com/user`（只在你跑 `github_token_status` 时探活） |
+| token 存在哪 | `~/.dsh/.credentials.yaml`。POSIX 上宿主以 `0600` 文件、`0700` 目录创建；Windows 上依赖宿主实现与 ACL，不能承诺等同于 POSIX 权限。**磁盘上是明文 YAML，DSH 不加密它** |
+| 谁能读到 | 同机的、以你用户身份运行的程序通常都能读。这是本地凭据的固有限制，插件不假装能挡住 |
+| 模型能看到 token 吗 | 不能。设置页输入框直写凭据中心；`github_token_status` 只读 `describe()` 的来源/状态，不 `resolve()` PAT，也不返回掩码 |
+| 日志和 UI 错误里会有 token 吗 | 插件日志只打 ref 名或脱敏诊断；UI 对未知远端错误只显示通用失败提示，不回显 `error.message` |
+| 会外联到哪 | 主插件只连接 `https://api.githubcopilot.com/mcp/`；`github_token_status` 不访问网络 |
 
 `GITHUB_MCP_TOOLSETS` / `GITHUB_MCP_READONLY` 也放在同一个文件里，纯粹是因为「凭据变更会触发重连」这条链路现成可用；它们的值是 `repos,issues` 和 `false`，不是密钥。
 
 ## 兼容性
 
-- DSH `0.2.2-rc.3`（桌面端）实测可用；要求宿主暴露 `mcpManager` 与 `credentials` 服务
+- DSH 声明兼容 `>=0.2.2-rc.1 <0.3.0-0`；0.3.2 在 `0.2.2-rc.5` 上完成本地静态核对与测试，要求宿主暴露 `mcpManager` 与 `credentials` 服务
 - 工具名稳定为 `mcp__github__<raw_name>`，白名单/工具治理规则按这个名字匹配
 - `dsh-github-mcp-hint`（可选面板插件）降为 `optionalDependencies`，没装不影响主功能
 
@@ -176,18 +179,20 @@ node test/config.test.mjs
 node test/host.test.mjs
 node test/client.test.mjs
 node test/client.render.test.mjs
+node test/client-actions.test.mjs
 node test/patch.test.mjs
 ```
 
 | 测试 | 跑什么 |
 |---|---|
 | `test/config.test.mjs` | 工具集解析、去空去重保序、草稿比较 |
-| `test/host.test.mjs` | `seedCredentialDefaults` 只补缺省不覆盖；`mcpManager` 不可用时降级 |
+| `test/host.test.mjs` | 缺省值只补缺省；mcpManager 注册契约；状态工具不 resolve PAT、不联网、不泄漏其它 server/原始错误；未知来源与连接枚举被丢弃 |
 | `test/client.test.mjs` | 模块加载契约：`inject` 声明、slot 注册 |
 | `test/client.render.test.mjs` | 假 React 渲染整屏：工具数文案、按钮、掩码回显 |
+| `test/client-actions.test.mjs` | 清除 token 的 fallback 警告、错误脱敏、同步锁 |
 | `test/patch.test.mjs` | patch 只有一行 insert，且不含 `!!js` / `process.env` |
 
-`test/*.test.mjs` 里的 host/patch 用例会把 `@deepseek-ai/*` 解析到本地 DSH 安装目录（`DSH_NODE_MODULES` 可覆盖），没有 DSH 时自动跳过。
+`test/*.test.mjs` 里的 patch 用例会把 `@deepseek-ai/*` 解析到本地 DSH 安装目录（`DSH_NODE_MODULES` 可覆盖），没有 DSH 时跳过 YAML 解析用例；host 用例使用假服务，不需要 DSH 安装。
 
 ## License
 

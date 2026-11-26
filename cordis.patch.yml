@@ -1,7 +1,7 @@
 # dsh-github-mcp bundle。
 #
 # 这里只插本插件自己。GitHub MCP 的 mcp-client 实例由 lib/index.mjs 在 apply()
-# 里通过 ctx.get("mcpManager").register("github", …) 挂载，不再写死在 patch 里：
+# 里通过注入的 ctx.mcpManager.register("github", …) 挂载，不再写死在 patch 里：
 #   - mcp-manager 负责连接、重连、状态记录，连接失败会以 status 暴露而不是让启动挂住
 #   - 它给 startupTimeoutMs 一个默认预算（30s），tools/list 再慢也不会无限等待
 #   - 三个 header 仍走「凭据模板」，mcp-manager 内部固定 expandTemplates: true，
